@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Album Quiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: #1e1e2e;
+    --accent: #e8ff3c;
+    --accent2: #ff3c6e;
+    --text: #f0f0f0;
+    --muted: #666;
+    --correct: #3cffa0;
+    --wrong: #ff3c6e;
+    --radius: 14px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 0 env(safe-area-inset-bottom);
+  }
+
+  /* ── HEADER ── */
+  header {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 18px 20px 10px;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .score-badge {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(232,255,60,.1);
+    border: 1px solid rgba(232,255,60,.25);
+    border-radius: 20px;
+    padding: 4px 10px;
+  }
+  .progress-track {
+    width: 90px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 4px;
+    transition: width .4s ease;
+  }
+
+  /* ── MAIN ── */
+  main {
+    width: 100%;
+    max-width: 480px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 16px 20px;
+    gap: 16px;
+  }
+
+  /* ── COVER ── */
+  .cover-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: 0 20px 60px rgba(0,0,0,.6);
+  }
+  .cover-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: opacity .3s;
+  }
+  .cover-wrap img.loading { opacity: 0; }
+
+  .q-counter {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 2px;
+    color: rgba(255,255,255,.8);
+    background: rgba(0,0,0,.5);
+    backdrop-filter: blur(6px);
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+
+  /* result overlay */
+  .result-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity .3s;
+    pointer-events: none;
+  }
+  .result-overlay.show { opacity: 1; }
+  .result-overlay.correct { background: rgba(60,255,160,.15); }
+  .result-overlay.wrong   { background: rgba(255,60,110,.15); }
+
+  .result-icon {
+    font-size: 56px;
+    line-height: 1;
+  }
+  .result-text {
+    font-size: 13px;
+    font-weight: 700;
+    text-align: center;
+    padding: 6px 14px;
+    border-radius: 8px;
+    max-width: 90%;
+    word-break: break-word;
+  }
+  .result-overlay.correct .result-text {
+    background: rgba(60,255,160,.2);
+    color: var(--correct);
+  }
+  .result-overlay.wrong .result-text {
+    background: rgba(255,60,110,.2);
+    color: var(--wrong);
+  }
+
+  /* ── OPTIONS ── */
+  .options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .opt {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: center;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .1s;
+    user-select: none;
+    line-height: 1.3;
+    min-height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .opt:active { transform: scale(.97); }
+  .opt.selected { border-color: var(--accent); background: rgba(232,255,60,.07); }
+  .opt.correct  { border-color: var(--correct); background: rgba(60,255,160,.12); color: var(--correct); }
+  .opt.wrong    { border-color: var(--wrong);   background: rgba(255,60,110,.12); color: var(--wrong); }
+  .opt.disabled { pointer-events: none; opacity: .5; }
+  .opt.disabled.correct { opacity: 1; }
+
+  /* ── NEXT BTN ── */
+  .next-btn {
+    width: 100%;
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    display: none;
+    transition: opacity .2s, transform .1s;
+  }
+  .next-btn:active { transform: scale(.98); }
+  .next-btn.show { display: block; }
+
+  /* ── FINISH SCREEN ── */
+  #finish {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    flex: 1;
+    text-align: center;
+    padding: 20px;
+  }
+  #finish.show { display: flex; }
+  #game-area { display: flex; flex-direction: column; gap: 16px; flex: 1; }
+  #game-area.hidden { display: none; }
+
+  .finish-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    letter-spacing: 4px;
+    line-height: .9;
+  }
+  .finish-score {
+    font-size: 18px;
+    color: var(--muted);
+  }
+  .finish-score span {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 24px;
+  }
+  .restart-btn {
+    background: var(--accent);
+    color: #0a0a0f;
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px 40px;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    cursor: pointer;
+  }
+
+  /* ── LOADING ── */
+  #loading {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 4px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">AlbumQuiz</div>
+  <div class="progress-wrap">
+    <div class="score-badge" id="score-badge">0 / 0</div>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+</header>
+
+<main>
+  <div id="loading">ЗАГРУЗКА...</div>
+
+  <div id="game-area" class="hidden">
+    <div class="cover-wrap">
+      <img id="cover-img" src="" alt="album cover" class="loading">
+      <div class="q-counter" id="q-counter">1 / 20</div>
+      <div class="result-overlay" id="result-overlay">
+        <div class="result-icon" id="result-icon"></div>
+        <div class="result-text" id="result-text"></div>
+      </div>
+    </div>
+
+    <div class="options" id="options"></div>
+    <button class="next-btn" id="next-btn">СЛЕДУЮЩИЙ →</button>
+  </div>
+
+  <div id="finish">
+    <div class="finish-title" id="finish-title">ГОТОВО!</div>
+    <div class="finish-score">Правильных ответов: <span id="final-score">0</span> из 20</div>
+    <button class="restart-btn" onclick="startGame()">ИГРАТЬ СНОВА</button>
+  </div>
+</main>
+
+<script src="data.js"></script>
+<script>
+// ── CONFIG ──
+const SESSION_SIZE = 20;
+// Базовый URL до папки с обложками (GitHub Pages или локальная папка)
+// Измени на свой URL после деплоя:
+const BASE_URL = 'https://githubpavel.github.io/obl/';
+
+// ── STATE ──
+let queue = [];
+let currentIdx = 0;
+let correct = 0;
+let answered = false;
+
+// ── INIT ──
+window.addEventListener('load', () => {
+  if (typeof ALBUMS === 'undefined' || ALBUMS.length === 0) {
+    document.getElementById('loading').textContent = 'ОШИБКА: data.js не найден';
+    return;
+  }
+  document.getElementById('loading').style.display = 'none';
+  startGame();
+});
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function startGame() {
+  // Перемешиваем и берём SESSION_SIZE
+  queue = shuffle([...ALBUMS]).slice(0, SESSION_SIZE);
+  currentIdx = 0;
+  correct = 0;
+
+  document.getElementById('finish').classList.remove('show');
+  document.getElementById('game-area').classList.remove('hidden');
+  renderQuestion();
+}
+
+function renderQuestion() {
+  const album = queue[currentIdx];
+  answered = false;
+
+  // Counter & progress
+  document.getElementById('q-counter').textContent = `${currentIdx + 1} / ${SESSION_SIZE}`;
+  document.getElementById('score-badge').textContent = `${correct} / ${currentIdx}`;
+  document.getElementById('progress-fill').style.width = `${(currentIdx / SESSION_SIZE) * 100}%`;
+
+  // Cover
+  const img = document.getElementById('cover-img');
+  img.classList.add('loading');
+  img.onload = () => img.classList.remove('loading');
+  img.onerror = () => { img.src = ''; img.classList.remove('loading'); }
+  img.src = BASE_URL + encodeURIComponent(album.file);
+
+  // Clear overlay
+  const overlay = document.getElementById('result-overlay');
+  overlay.className = 'result-overlay';
+  document.getElementById('result-icon').textContent = '';
+  document.getElementById('result-text').textContent = '';
+
+  // Hide next btn
+  document.getElementById('next-btn').classList.remove('show');
+
+  // Build 4 options
+  const correctArtist = album.artist;
+  const allArtists = [...new Set(ALBUMS.map(a => a.artist))].filter(a => a !== correctArtist);
+  const wrong3 = shuffle(allArtists).slice(0, 3);
+  const options = shuffle([correctArtist, ...wrong3]);
+
+  const container = document.getElementById('options');
+  container.innerHTML = '';
+  options.forEach(artist => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.textContent = artist;
+    btn.addEventListener('click', () => handleAnswer(btn, artist, correctArtist, album));
+    container.appendChild(btn);
+  });
+}
+
+function handleAnswer(btn, chosen, correct_artist, album) {
+  if (answered) return;
+  answered = true;
+
+  const overlay = document.getElementById('result-overlay');
+  const allBtns = document.querySelectorAll('.opt');
+
+  // Highlight options
+  allBtns.forEach(b => {
+    b.classList.add('disabled');
+    if (b.textContent === correct_artist) b.classList.add('correct');
+    else if (b === btn && chosen !== correct_artist) b.classList.add('wrong');
+    else b.classList.add('disabled');
+  });
+
+  const isCorrect = chosen === correct_artist;
+  if (isCorrect) correct++;
+
+  // Overlay
+  overlay.classList.add('show');
+  overlay.classList.add(isCorrect ? 'correct' : 'wrong');
+  document.getElementById('result-icon').textContent = isCorrect ? '✓' : '✗';
+  document.getElementById('result-text').textContent =
+    isCorrect
+      ? `«${album.album}»`
+      : `${correct_artist} — «${album.album}»`;
+
+  // Show next
+  const nextBtn = document.getElementById('next-btn');
+  nextBtn.textContent = currentIdx + 1 < SESSION_SIZE ? 'СЛЕДУЮЩИЙ →' : 'РЕЗУЛЬТАТ';
+  nextBtn.classList.add('show');
+}
+
+document.getElementById('next-btn').addEventListener('click', () => {
+  currentIdx++;
+  if (currentIdx >= SESSION_SIZE) {
+    showFinish();
+  } else {
+    renderQuestion();
+  }
+});
+
+function showFinish() {
+  document.getElementById('game-area').classList.add('hidden');
+  const finish = document.getElementById('finish');
+  finish.classList.add('show');
+  document.getElementById('final-score').textContent = correct;
+
+  const title = document.getElementById('finish-title');
+  if (correct === SESSION_SIZE)      title.textContent = 'ИДЕАЛ!';
+  else if (correct >= SESSION_SIZE * .8) title.textContent = 'ОТЛИЧНО!';
+  else if (correct >= SESSION_SIZE * .6) title.textContent = 'НЕПЛОХО!';
+  else if (correct >= SESSION_SIZE * .4) title.textContent = 'УЧИСЬ!';
+  else                                   title.textContent = 'СЛУШАЙ БОЛЬШЕ';
+
+  document.getElementById('score-badge').textContent = `${correct} / ${SESSION_SIZE}`;
+  document.getElementById('progress-fill').style.width = '100%';
+}
+</script>
+</body>
+</html>
